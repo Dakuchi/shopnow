@@ -1,0 +1,108 @@
+# up date /etc/hosts on each node
+echo "10.148.0.100 storage-master-1
+10.148.0.101 storage-master-2
+10.148.0.102 storage-master-3" | sudo tee /etc/hosts
+
+# install gluster
+sudo apt install glusterfs-server -y
+sudo systemctl start glusterd && sudo systemctl enable glusterd
+
+# setup on master 1
+sudo gluster peer probe storage-master-2
+sudo gluster peer probe storage-master-3
+sudo gluster peer status
+
+# create folder on each server
+sudo mkdir -p /data/nfs
+sudo chown -R nobody:nogroup /data/nfs
+sudo chmod -R 775 /data/nfs
+
+sudo gluster volume create vol_nfs_storage replica 3 transport tcp storage-master-1:/data/nfs storage-master-2:/data/nfs storage-master-3:/data/nfs force
+sudo gluster volume start vol_nfs_storage
+
+# setup ganesha config on each node
+echo "NFS_Core_Param {
+    NFS_Enable_V3 = true;
+    NFS_Enable_V4 = true;
+    NFS_Enable_V4_1 = true;
+    NFS_Enable_V4_2 = true;
+}
+
+EXPORT {
+    Export_ID = 1001;
+    Path = "/vol_nfs_storage";
+    Pseudo = "/vol_nfs_storage";
+    Access_Type = RW;
+    Squash = No_root_squash;
+    FSAL {
+        Name = GLUSTER;
+        Hostname = "localhost";
+        Volume = "vol_nfs_storage";
+    }
+}" | sudo tee -a /etc/ganesha/ganesha.conf
+
+# apply changes
+
+sudo systemctl restart nfs-ganesha
+sudo systemctl enable nfs-ganesha
+sudo systemctl status nfs-ganesha
+
+# configure vrrp on each server
+sudo apt install keepalived -y
+sudo systemctl enable --now keepalived
+
+# master 1
+echo "vrrp_instance VI_1 {  
+    state MASTER  
+    interface ens4  
+    virtual_router_id 51  
+    priority 100  
+    advert_int 1  
+    authentication {  
+        auth_type PASS  
+        auth_pass ZNQDHQL3ZoFp58  
+    }  
+    virtual_ipaddress {  
+        10.148.0.103/24  
+    }  
+}" | sudo tee /etc/keepalived/keepalived.conf
+
+# master 2
+echo "vrrp_instance VI_1 {  
+    state BACKUP  
+    interface ens4  
+    virtual_router_id 51  
+    priority 90  
+    advert_int 1  
+    authentication {  
+        auth_type PASS  
+        auth_pass ZNQDHQL3ZoFp58  
+    }  
+    virtual_ipaddress {  
+        10.148.0.103/24  
+    }  
+}" | sudo tee /etc/keepalived/keepalived.conf
+
+# server 3
+
+echo "vrrp_instance VI_1 {  
+    state BACKUP  
+    interface ens4  
+    virtual_router_id 51  
+    priority 80  
+    advert_int 1  
+    authentication {  
+        auth_type PASS  
+        auth_pass ZNQDHQL3ZoFp58  
+    }  
+    virtual_ipaddress {  
+        10.148.0.103/24
+    }  
+}" | sudo tee /etc/keepalived/keepalived.conf 
+
+sudo systemctl restart keepalived.service
+sudo systemctl status keepalived
+
+
+sudo mkdir -p /data/nfs/mysql
+sudo chmod -R 777 /data/nfs/mysql

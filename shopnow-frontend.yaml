@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: shopnow-frontend
+  name: shopnow-frontend-deployment
+  namespace: shopnow
+spec:
+  replicas: 1
+  revisionHistoryLimit: 11
+  selector:
+    matchLabels:
+      app: shopnow-frontend
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: shopnow-frontend
+      namespace: shopnow-frontend
+    spec:
+      containers:
+        - image: dakuchi/shopnow-frontend:v1
+          imagePullPolicy: Always
+          name: shopnow-frontend
+          ports:
+            - containerPort: 3000
+              name: tcp
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: 200m
+              memory: 1Gi
+      imagePullSecrets:
+      - name: shopnow-registry-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shopnow-frontend-service
+  namespace: shopnow
+spec:
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+    - name: tcp
+      port: 80
+      protocol: TCP
+      targetPort: 3000
+  selector:
+    app: shopnow-frontend
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shopnow-frontend-ingress
+  namespace: shopnow
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: shopnow.devopseduvn.live
+      http:
+        paths:
+          - backend:
+              service:
+                name: shopnow-frontend-service
+                port:
+                  number: 80
+            path: /
+            pathType: Prefix

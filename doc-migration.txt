@@ -1,0 +1,20 @@
+Deployment order:
+discovery-server -> postgres -> keycloak-mysql -> user-service -> product-service -> cart-service -> api-gateway
+
+Process:
+1. add host
+2. add domain
+
+Steps:
+1. Build image -> Push to registry
+2. Config storage
+3. YAML
+	configmap (secret)
+	deployment
+	service
+	ingress
+	pv pvc
+
+4. Add host
+5. Test dev
+6. Use domain

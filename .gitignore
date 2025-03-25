@@ -1,0 +1,22 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### VS Code ###
+.vscode/
+
+### My SQL Host Data ###
+my-sql-data
+/mysql_keycloak_data/
+
+# Terraform files inside the 'terraform' folder
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/crash.log
+terraform/terraform.tfvars
+terraform/terraform.override.tf
+terraform/terraform.override.tf.json
+terraform/terraform.lock.hcl
+terraform/.terraform.lock.hcl

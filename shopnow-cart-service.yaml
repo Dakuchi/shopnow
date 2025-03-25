@@ -1,0 +1,105 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shopnow-cart-service-application-properties-configmap
+  namespace: shopnow
+data:
+  application.properties: |
+    spring.application.name=cart-service
+    server.port=5863
+
+    eureka.instance.hostname=cart-service
+    eureka.instance.instance-id=${spring.application.name}
+    eureka.client.service-url.defaultZone=http://shopnow-discovery-server-service:8761/eureka/
+
+    spring.datasource.url=jdbc:postgresql://postgres:5432/postgres?useSSL=false
+    spring.datasource.username=postgres
+    spring.datasource.password=admin
+    spring.jpa.hibernate.ddl-auto=update
+    spring.jpa.show-sql=true
+    spring.jpa.properties.hibernate.format_sql=true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: shopnow-cart-service
+  name: shopnow-cart-service-deployment
+  namespace: shopnow
+spec:
+  replicas: 1
+  revisionHistoryLimit: 11
+  selector:
+    matchLabels:
+      app: shopnow-cart-service
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: shopnow-cart-service
+      namespace: shopnow
+    spec:
+      containers:
+        - image: harbor.devopseduvn.live/shopnow/cart-service:v1
+          imagePullPolicy: Always
+          name: shopnow-cart-service
+          ports:
+            - containerPort: 5863
+              name: tcp
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /app/src/main/resources/application.properties
+              name: shopnow-cart-service-application-properties-config-volume
+              subPath: application.properties
+      imagePullSecrets:
+      - name: shopnow-registry-secret
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      volumes:
+        - configMap:
+            defaultMode: 420
+            name: shopnow-cart-service-application-properties-configmap
+          name: shopnow-cart-service-application-properties-config-volume
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shopnow-cart-service-service
+  namespace: shopnow
+spec:
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+    - name: tcp
+      port: 5863
+      protocol: TCP
+      targetPort: 5863
+  selector:
+    app: shopnow-cart-service
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shopnow-cart-service-ingress
+  namespace: shopnow
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: cart-service-shopnow.devopseduvn.live
+      http:
+        paths:
+          - backend:
+              service:
+                name: shopnow-cart-service-service
+                port:
+                  number: 5863
+            path: /
+            pathType: Prefix

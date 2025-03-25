@@ -1,0 +1,117 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: keycloak-realms-pv
+  namespace: shopnow
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  nfs:
+    path: /data/nfs-shared/keycloak-realms
+    server: 192.168.100.112
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs-storage
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: keycloak-realms-pvc
+  namespace: shopnow
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: nfs-storage
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shopnow-keycloak-realms-deployment
+  namespace: shopnow
+  labels:
+    app: shopnow-keycloak-realms
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shopnow-keycloak-realms
+  template:
+    metadata:
+      labels:
+        app: shopnow-keycloak-realms
+    spec:
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:23.0.3
+          command:
+            - "/opt/keycloak/bin/kc.sh"
+            - "start-dev"
+            - "--import-realm"
+          env:
+            - name: DB_VENDOR
+              value: MYSQL
+            - name: DB_ADDR
+              value: keycloak-mysql
+            - name: DB_DATABASE
+              value: keycloak
+            - name: DB_USER
+              value: keycloak
+            - name: DB_PASSWORD
+              value: password
+            - name: KEYCLOAK_ADMIN
+              value: admin
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              value: admin
+          ports:
+            - containerPort: 8080
+              name: http
+          volumeMounts:
+            - mountPath: /opt/keycloak/data/import
+              name: keycloak-realms
+      volumes:
+        - name: keycloak-realms
+          persistentVolumeClaim:
+            claimName: keycloak-realms-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shopnow-keycloak-realms-service
+  namespace: shopnow
+spec:
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+    - name: tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app: shopnow-keycloak-realms
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shopnow-keycloak-realms-ingress
+  namespace: shopnow
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: keycloak-shopnow.devopseduvn.live
+      http:
+        paths:
+          - backend:
+              service:
+                name: shopnow-keycloak-realms-service
+                port:
+                  number: 8080
+            path: /
+            pathType: Prefix

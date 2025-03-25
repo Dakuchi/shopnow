@@ -1,0 +1,119 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shopnow-api-gateway-application-properties-configmap
+  namespace: shopnow
+data:
+  application.properties: |
+    spring.application.name=api-gateway
+    server.port=5860
+
+    eureka.instance.hostname=api-gateway
+    eureka.instance.instance-id=${spring.application.name}
+    eureka.client.service-url.defaultZone=http://shopnow-discovery-server-service:8761/eureka/
+
+    management.endpoints.web.base-path=/actuator
+    management.endpoints.web.exposure.include=*
+
+    spring.main.web-application-type=reactive
+
+    spring.cloud.gateway.discovery.locator.enabled=true
+    spring.cloud.gateway.routes[0].id=PRODUCT-SERVICE
+    spring.cloud.gateway.routes[0].uri=http://shopnow-product-service-service:5861
+    spring.cloud.gateway.routes[0].predicates[0]=Path=/api/product/**
+
+    spring.cloud.gateway.routes[1].id=SHOPPING-CART-SERVICE
+    spring.cloud.gateway.routes[1].uri=http://shopnow-cart-service-service:5863
+    spring.cloud.gateway.routes[1].predicates[0]=Path=/api/shopping-cart/**
+
+    spring.cloud.gateway.routes[2].id=USER-SERVICE
+    spring.cloud.gateway.routes[2].uri=http://shopnow-user-service-service:5865
+    spring.cloud.gateway.routes[2].predicates[0]=Path=/api/user/**
+
+    spring.security.oauth2.resourceserver.jwt.issuer-uri=http://shopnow-keycloak-realms-service:8080/realms/java-microservice-realm
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: shopnow-api-gateway
+  name: shopnow-api-gateway-deployment
+  namespace: shopnow
+spec:
+  replicas: 1
+  revisionHistoryLimit: 11
+  selector:
+    matchLabels:
+      app: shopnow-api-gateway
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: shopnow-api-gateway
+      namespace: shopnow
+    spec:
+      containers:
+        - image: harbor.devopseduvn.live/shopnow/api-gateway:v1
+          imagePullPolicy: Always
+          name: shopnow-api-gateway
+          ports:
+            - containerPort: 5859
+              name: tcp
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /app/src/main/resources/application.properties
+              name: shopnow-api-gateway-application-properties-config-volume
+              subPath: application.properties
+      imagePullSecrets:
+      - name: shopnow-registry-secret
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      volumes:
+        - configMap:
+            defaultMode: 420
+            name: shopnow-api-gateway-application-properties-configmap
+          name: shopnow-api-gateway-application-properties-config-volume
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shopnow-api-gateway-service
+  namespace: shopnow
+spec:
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+    - name: tcp
+      port: 5860
+      protocol: TCP
+      targetPort: 5860
+  selector:
+    app: shopnow-api-gateway
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shopnow-api-gateway-ingress
+  namespace: shopnow
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: api-shopnow.devopseduvn.live
+      http:
+        paths:
+          - backend:
+              service:
+                name: shopnow-api-gateway-service
+                port:
+                  number: 5860
+            path: /
+            pathType: Prefix
