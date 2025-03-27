@@ -12,7 +12,7 @@ spec:
   claimRef:
     namespace: shopnow
     name: mysql-pvc
-  #persistentVolumeReclaimPolicy: Retain
+  persistentVolumeReclaimPolicy: Retain
   storageClassName: standard
   gcePersistentDisk:
     pdName: keycloak-mysql
