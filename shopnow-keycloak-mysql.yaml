@@ -15,6 +15,13 @@ spec:
       labels:
         app: shopnow-keycloak-mysql
     spec:
+      initContainers:
+        - name: init-mysql
+          image: busybox
+          command: ["sh", "-c", "rm -rf /var/lib/mysql/lost+found"]
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: mysql-data
       containers:
         - name: shopnow-keycloak-mysql
           image: mysql:5.7
