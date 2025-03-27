@@ -44,7 +44,7 @@ spec:
       namespace: shopnow
     spec:
       containers:
-        - image: harbor.devopseduvn.live/shopnow/product-service:v1
+        - image: dakuchi/shopnow/product-service:v1
           imagePullPolicy: Always
           name: shopnow-product-service
           ports:
