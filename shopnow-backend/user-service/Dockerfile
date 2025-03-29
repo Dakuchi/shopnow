@@ -11,4 +11,7 @@ FROM openjdk:17-jdk-slim
 WORKDIR /app
 COPY --from=builder /app/target/user-service-0.0.1-SNAPSHOT.war /app/user-service.war
 
-CMD ["java", "-jar", "user-service.war"]
+EXPOSE 5865
+
+#CMD ["java", "-jar", "user-service.war"]
+ENTRYPOINT exec java -jar /app/user-service.war --spring.config.location=/app/src/main/resources/application.properties
