@@ -44,7 +44,7 @@ spec:
       namespace: shopnow
     spec:
       containers:
-        - image: dakuchi/shopnow/product-service:v1
+        - image: dakuchi/shopnow-product-service:v1
           imagePullPolicy: Always
           name: shopnow-product-service
           ports:
@@ -55,6 +55,13 @@ spec:
             - mountPath: /app/src/main/resources/application.properties
               name: shopnow-product-service-application-properties-config-volume
               subPath: application.properties
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: 200m
+              memory: 1Gi
       imagePullSecrets:
       - name: shopnow-registry-secret
       dnsPolicy: ClusterFirst
@@ -93,7 +100,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: product-service-shopnow.devopseduvn.live
+    - host: product-service-shopnow.datcuongchien.online
       http:
         paths:
           - backend:

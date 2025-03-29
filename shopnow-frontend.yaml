@@ -68,7 +68,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: shopnow.devopseduvn.live
+    - host: shopnow.datcuongchien.online
       http:
         paths:
           - backend:

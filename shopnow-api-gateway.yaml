@@ -58,7 +58,7 @@ spec:
       namespace: shopnow
     spec:
       containers:
-        - image: harbor.devopseduvn.live/shopnow/api-gateway:v1
+        - image: dakuchi/shopnow-api-gateway:v1
           imagePullPolicy: Always
           name: shopnow-api-gateway
           ports:
@@ -69,6 +69,13 @@ spec:
             - mountPath: /app/src/main/resources/application.properties
               name: shopnow-api-gateway-application-properties-config-volume
               subPath: application.properties
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: 200m
+              memory: 1Gi
       imagePullSecrets:
       - name: shopnow-registry-secret
       dnsPolicy: ClusterFirst
@@ -107,7 +114,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: api-shopnow.devopseduvn.live
+    - host: api-shopnow.datcuongchien.online
       http:
         paths:
           - backend:
