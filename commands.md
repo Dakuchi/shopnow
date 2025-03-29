@@ -2,3 +2,6 @@ kubectl create secret docker-registry shopnow-registry-secret --docker-server=ht
 
 # connect discovery service with postgres 
 psql -h postgres -p 5432 -U postgres -d postgres
+
+# connect discovery service with postgres in different namespace
+psql -h postgres.shopnow.svc.cluster.local -p 5432 -U postgres -d postgres 
