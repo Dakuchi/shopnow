@@ -1,5 +1,5 @@
 Deployment order:
-discovery-server -> postgres -> keycloak-mysql -> user-service -> product-service -> cart-service -> api-gateway
+discovery-server -> postgres -> keycloak-mysql -> keycloak -> user-service -> product-service -> cart-service -> api-gateway
 
 Process:
 1. add host
